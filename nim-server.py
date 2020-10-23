@@ -76,7 +76,6 @@ def server(na,nb,nc,PORT):
 
     listenSocket.listen(1)
     print("Listen was done successfully")
-    return
     while True:
         conn , addr = listenSocket.accept()
         #Initialize game
@@ -123,12 +122,10 @@ def server(na,nb,nc,PORT):
 
 #Main function for the program
 def main():
-    # print("main")
-    # na,nb,nc,PORT = getConsoleInput()
-    # print(na,nb,nc,PORT)
-    # return
-    # server(na,nb,nc,PORT)
-    print("Main")
+    print("main")
+    na,nb,nc,PORT = getConsoleInput()
+    print(na,nb,nc,PORT)
+    server(na,nb,nc,PORT)
     # heaps = [5,5,5]
     # while(True):
     #     print(heaps)
