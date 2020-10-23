@@ -3,13 +3,14 @@
 import errno
 import struct
 import sys
+import socket
 from socket import AF_INET, socket, SOCK_STREAM
 
 
-def mySendall(sock, byteStep):
+def mySendall(clientSoc, byteStep):
     try:
         while len(byteStep != 0):
-            ret = sock.send(byteStep)
+            ret = clientSoc.send(byteStep)
             byteStep = byteStep[ret:]
     except socket.error as error:
         print(error.strerror)
@@ -22,15 +23,15 @@ def createStep():
     step = input()
     splitStep = step.split()
     if len(splitStep) == 2:
-        if splitStep[0] == "Q":
-            return struct.pack(">ci", "Z", 0)
+        if splitStep[0] == "Q" or len(splitStep[0]) != 1 or not splitStep[1].isdigit():
+            return struct.pack(">ci", b'Z', 0)
         else:
-            return struct.pack(">ci", splitStep[0], splitStep[1])
+            return struct.pack(">ci", splitStep[0].encode('utf-8'), int(splitStep[1]))
     elif len(splitStep) == 1:
         if splitStep[0] == "Q":
-            return struct.pack(">ci", "Q", 0)
+            return struct.pack(">ci", b'Q', 0)
     else:
-        return struct.pack(">ci", "Z", 0)
+        return struct.pack(">ci", b'Z', 0)
 
 
 # returns True if play is not over, otherwise returns False
@@ -58,18 +59,26 @@ def parseCurrentPlayStatus(data):
 # while game on and connection is valid, get the heap status, and send the new game move
 def startPlay(clientSoc):
     run = True
+    step = ""
     while run:
-        data = clientSoc.recv(1024)
-        if data == 0:
-            print("Disconnected from server\n")
-            run = False
-        else:
-            run = parseCurrentPlayStatus(data)
+        size = 0
+        while size != 13:
+            data = clientSoc.recv(1024)
+            if data == 0:
+                print("Disconnected from server\n")
+                run = False
+                break
+            else:
+                size += sys.getsizeof(data)
+                step += data
+        if run:
+            run = parseCurrentPlayStatus(step)
             if run:
                 byteStep = createStep()
                 run = mySendall(clientSoc, byteStep)
 
 
+# create the first connection
 def connectToGame(hostName, port):
     clientSoc = socket(AF_INET, SOCK_STREAM)
     try:
