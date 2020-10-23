@@ -55,6 +55,7 @@ def parseCurrentPlayStatus(data):
     return True
 
 
+# while game on and connection is valid, get the heap status, and send the new game move
 def startPlay(clientSoc):
     run = True
     while run:
@@ -74,12 +75,12 @@ def connectToGame(hostName, port):
     try:
         clientSoc.connect((hostName, port))
         startPlay(clientSoc)
-        clientSoc.close()
     except OSError as error:
         if error.errno == errno.ECONNREFUSED:
             print("connection refused by server")
         else:
             print(error.strerror + ", cannot start playing")
+    finally:
         clientSoc.close()
 
 
