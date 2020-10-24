@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import errno
 import struct
 import sys
@@ -90,8 +89,9 @@ def startPlay(clientSoc):
 
 # create the first connection
 def connectToGame(hostName, port):
-    clientSoc = socket(AF_INET, SOCK_STREAM)
+    clientSoc = None
     try:
+        clientSoc = socket(AF_INET, SOCK_STREAM)
         clientSoc.connect((hostName, port))
         startPlay(clientSoc)
     except OSError as error:
@@ -100,7 +100,8 @@ def connectToGame(hostName, port):
         else:
             print(error.strerror + ", cannot start playing")
     finally:
-        clientSoc.close()
+        if clientSoc is not None:
+            clientSoc.close()
 
 
 def main():
@@ -112,4 +113,10 @@ def main():
         port = sys.argv[2]
     elif n > 1:
         hostName = sys.argv[1]
-    connectToGame(hostName, port)
+    if port.isdigit():
+        connectToGame(hostName, int(port))
+    else:
+        print("second argument is not a valid port number, cannot start playing")
+
+
+main()
