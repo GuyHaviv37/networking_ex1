@@ -27,7 +27,7 @@ def myRecvall(conn,MSGLEN):
         data = conn.recv(1024) # to be changed later
         if data == b'':
             print("disconnect")
-            return
+            return b'X\x00\x00\x00\x00'
         bytesLeft += sys.getsizeof(data)-STRUCT_SIZE
         chunks.append(data)
     print("message recieved fully")
@@ -66,6 +66,7 @@ def parseHeapId(heapId):
     }.get(heapId,-1)
 
 # Client input parser
+# param - a bytes object
 # Returns heaps array index to look for , or invalid index for quit / invalid move
 # Returns amount of die to remove if heapIndex is valid
 def parseRecvInput(bytesRecv):
@@ -145,8 +146,7 @@ def server(na,nb,nc,PORT):
 
             # Receive message from client
             bytesRecv = myRecvall(conn,5)
-            inputRecv = struct.unpack(">ci",bytesRecv)
-            heapIndex, amount = parseRecvInput(inputRecv)
+            heapIndex, amount = parseRecvInput(bytesRecv)
 
             # Make game move and set messageTag:
             if(heapIndex >= 3): # Quit current game
@@ -178,7 +178,9 @@ def main():
 
 def test():
     #test_basicGame(5,5,5)
-    test_Recvall()
+    #recv = test_Recvall()
+    heapIndex , amount = parseRecvInput(b'X\x00\x00\x00\x00')
+    print(heapIndex,amount)
 
     
 
@@ -200,6 +202,7 @@ def test_Recvall():
         sent = sent[2:]
     print("message recieved fully")
     print(f"message : {b''.join(chunks)}")
+    return b''.join(chunks)
         
 
 
