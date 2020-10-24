@@ -59,10 +59,10 @@ def parseCurrentPlayStatus(data):
 # while game on and connection is valid, get the heap status, and send the new game move
 def startPlay(clientSoc):
     run = True
-    step = ""
+    allData = ""
     while run:
         size = 0
-        while size != 13:
+        while size < 13:
             data = clientSoc.recv(1024)
             if data == 0:
                 print("Disconnected from server\n")
@@ -70,12 +70,15 @@ def startPlay(clientSoc):
                 break
             else:
                 size += sys.getsizeof(data)
-                step += data
-        if run:
-            run = parseCurrentPlayStatus(step)
+                allData += data
+        if run and size == 13:
+            run = parseCurrentPlayStatus(allData)
             if run:
                 byteStep = createStep()
                 run = mySendall(clientSoc, byteStep)
+        elif size > 13:
+            print("invalid data received from server")
+            run = False
 
 
 # create the first connection
