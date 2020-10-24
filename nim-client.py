@@ -1,10 +1,12 @@
 #!/usr/bin/python3
-
 import errno
 import struct
 import sys
 import socket
 from socket import AF_INET, socket, SOCK_STREAM
+
+STRUCT_SIZE = 33
+UTF = 'utf-8'
 
 
 def mySendall(clientSoc, byteStep):
@@ -18,6 +20,20 @@ def mySendall(clientSoc, byteStep):
     return True
 
 
+def myRecvall(clientSoc, expectedLenInBytes):
+    gotSize = 0
+    chunks = []
+    while gotSize < expectedLenInBytes:
+        data = clientSoc.recv(1024)
+        # check the difference from data == b''
+        if data == 0:
+            print("Disconnected from server\n")
+            return False, b''
+        gotSize += sys.getsizeof(data) - STRUCT_SIZE
+        chunks.append(data)
+    return True, b''.join(chunks)
+
+
 # returns bytes object with the data to send to the server- format ">ci"
 def createStep():
     step = input()
@@ -26,7 +42,7 @@ def createStep():
         if splitStep[0] == "Q" or len(splitStep[0]) != 1 or not splitStep[1].isdigit():
             return struct.pack(">ci", b'Z', 0)
         else:
-            return struct.pack(">ci", splitStep[0].encode('utf-8'), int(splitStep[1]))
+            return struct.pack(">ci", splitStep[0].encode(UTF), int(splitStep[1]))
     elif len(splitStep) == 1:
         if splitStep[0] == "Q":
             return struct.pack(">ci", b'Q', 0)
@@ -44,10 +60,10 @@ def parseCurrentPlayStatus(data):
     elif tav == "x":
         print("Illegal move\n")
     elif tav == "s":
-        print("Server win!\n")
+        print("Server win!")
         return False
     elif tav == "c":
-        print("You win!\n")
+        print("You win!")
         return False
     print("Heap A: " + str(nA) + "\n")
     print("Heap B: " + str(nB) + "\n")
@@ -59,29 +75,23 @@ def parseCurrentPlayStatus(data):
 # while game on and connection is valid, get the heap status, and send the new game move
 def startPlay(clientSoc):
     run = True
-    step = ""
     while run:
-        size = 0
-        while size != 13:
-            data = clientSoc.recv(1024)
-            if data == 0:
-                print("Disconnected from server\n")
-                run = False
-                break
-            else:
-                size += sys.getsizeof(data)
-                step += data
-        if run:
-            run = parseCurrentPlayStatus(step)
+        run, allDataRecv = myRecvall(clientSoc, 13)
+        if run and sys.getsizeof(allDataRecv) - STRUCT_SIZE == 13:
+            run = parseCurrentPlayStatus(allDataRecv)
             if run:
-                byteStep = createStep()
-                run = mySendall(clientSoc, byteStep)
+                bytesNewMove = createStep()
+                run = mySendall(clientSoc, bytesNewMove)
+        elif run:
+            print("invalid data received from server")
+            run = False
 
 
 # create the first connection
 def connectToGame(hostName, port):
-    clientSoc = socket(AF_INET, SOCK_STREAM)
+    clientSoc = None
     try:
+        clientSoc = socket(AF_INET, SOCK_STREAM)
         clientSoc.connect((hostName, port))
         startPlay(clientSoc)
     except OSError as error:
@@ -90,7 +100,8 @@ def connectToGame(hostName, port):
         else:
             print(error.strerror + ", cannot start playing")
     finally:
-        clientSoc.close()
+        if clientSoc is not None:
+            clientSoc.close()
 
 
 def main():
@@ -102,4 +113,10 @@ def main():
         port = sys.argv[2]
     elif n > 1:
         hostName = sys.argv[1]
-    connectToGame(hostName, port)
+    if port.isdigit():
+        connectToGame(hostName, int(port))
+    else:
+        print("second argument is not a valid port number, cannot start playing")
+
+
+main()
