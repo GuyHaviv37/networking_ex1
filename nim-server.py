@@ -2,6 +2,37 @@
 import socket
 import struct
 import sys
+import errno
+
+UTF = 'utf-8'
+
+# Sends all of bytesData to conn
+def mySendall(conn, bytesData):
+    try:
+        while (len(bytesData) != 0):
+            ret = conn.send(bytesData)
+            bytesData = bytesData[ret:]
+    except socket.error as error:
+        print(error.strerror)
+        return False
+    return True
+# Recieves MSGLEN bytes of data from socket 'conn'
+# Returns bytes object - that can be unpacked into tuple
+def myRecvall(conn,MSGLEN):
+    STRUCT_SIZE = 33
+    bytesLeft = 0
+    chunks = []
+    while bytesLeft < MSGLEN:
+        data = conn.recv(1024) # to be changed later
+        if data == b'':
+            print("disconnect")
+            return
+        bytesLeft += sys.getsizeof(data)-STRUCT_SIZE
+        chunks.append(data)
+    print("message recieved fully")
+    print(f"message : {b''.join(chunks)}")
+    return b''.join(chunks)
+
 
 # Gets command line input
 # returns - N_a,N_b,N_c[,PORT]
@@ -32,6 +63,16 @@ def parseHeapId(heapId):
         'C' : 2,
         'Q' : 3
     }.get(heapId,-1)
+
+# Client input parser
+# Returns heaps array index to look for , or invalid index for quit / invalid move
+# Returns amount of die to remove if heapIndex is valid
+def parseRecvInput(bytesRecv):
+    dataRecv = struct.unpack(">ci",bytesRecv)
+    heapId , amount = dataRecv
+    heapId = heapId.decode(UTF)
+    heapIndex = parseHeapId(heapId)
+    return heapIndex,amount
 
 # Checks if current client move is valid
 # 0 <= heapIndex <=2 && heaps[heapIndex] >= amount
@@ -68,14 +109,14 @@ def checkForWin(heaps):
 
 # Main server function
 def server(na,nb,nc,PORT):
-    listenSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    print("Socket created successfully")
+    try:
+        listenSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        listenSocket.bind(('',PORT))
+        listenSocket.listen(1)
+    except OSError as error:
+        #deal with error on establishment - that's system exit
+        print(error.strerror)
 
-    listenSocket.bind(('',PORT))
-    print("Bind was done successfully")
-
-    listenSocket.listen(1)
-    print("Listen was done successfully")
     while True:
         conn , addr = listenSocket.accept()
         #Initialize game
@@ -83,63 +124,96 @@ def server(na,nb,nc,PORT):
         gameOver = False
         heaps = [na,nb,nc]
         messageTag = 'i'
-        dataSent = struct.pack(">chhh",messageTag,heaps[0],heaps[1],heaps[2])
-        while(not gameOver):
+        dataSent = struct.pack(">ciii",messageTag.encode(UTF),heaps[0],heaps[1],heaps[2])
+        while(not gameOver): #can be changed to while True
+            # Send message to client
             if init == True: # send with 'i' tag
-                conn.send(dataSent)
                 init = False
             else: # send with messageTag
-                dataSent = struct.pack(">ciii",messageTag,heaps[0],heaps[1],heaps[2])
-                conn.send(dataSent)
-            #receive message from client
-            bytesRecv = conn.recv(5) # 1 char and 1 int
-            dataRecv = struct.unpack(">ci",bytesRecv)
-            #parse message from client
-            heapId , amount = dataRecv
-            heapIndex = parseHeapId(heapId) 
+                dataSent = struct.pack(">ciii",messageTag.encode(UTF),heaps[0],heaps[1],heaps[2])
+
+            if not mySendall(conn,dataSent):
+                    break # Quit
+
+            # Receive message from client
+            bytesRecv = myRecvall(conn,5)
+            inputRecv = struct.unpack(">ci",bytesRecv)
+            heapIndex, amount = parseRecvInput(inputRecv)
+
+            # Make game move and set messageTag:
             if(heapIndex >= 3): # Quit program
                 break
-            # Make game move and set messageTag:
             if(not checkValid(heaps,heapIndex,amount)):
                 messageTag = 'x'
                 updateHeapsServer(heaps)
-                if(checkForWin(heaps) == True):
+                if(checkForWin(heaps)):
                     messageTag = 's'
             else:
                 messageTag = 'g'
                 updateHeapsClient(heaps,heapIndex,amount)
-                if(checkForWin(heaps) == True):
+                if(checkForWin(heaps)):
                     messageTag = 'c'
                 else:
                     updateHeapsServer(heaps)
-                    if(checkForWin(heaps) == True):
+                    if(checkForWin(heaps)):
                         messageTag = 's'
             #continue program with loop
         conn.close()
-
     listenSocket.close()
-    print("ListenSocket was closed successfully")
 
 #Main function for the program
 def main():
-    print("main")
     na,nb,nc,PORT = getConsoleInput()
-    print(na,nb,nc,PORT)
     server(na,nb,nc,PORT)
-    # heaps = [5,5,5]
-    # while(True):
-    #     print(heaps)
-    #     index = int(input())
-    #     amount = int(input())
-    #     updateHeapsClient(heaps,index,amount)
-    #     if(checkForWin(heaps)):
-    #         print("Client won")
-    #         break
-    #     updateHeapsServer(heaps)
-    #     if(checkForWin(heaps)):
-    #         print("Server won")
-    #         break
+
+
+def test():
+    #test_basicGame(5,5,5)
+    sent = struct.pack(">ci",b'A',999)
+    #print(sent[4:5])
+    recv = struct.unpack(">ci",sent)
+    print(recv)
+    #test_Recvall()
+    
+
+def test_Recvall():
+    sent = struct.pack(">ci",b'A',999)
+    print(f"message to send: {sent}")
+    MSGLEN = struct.calcsize(">ci")
+    STRUCT_SIZE = 33
+    bytesLeft = 0
+    chunks = []
+    while bytesLeft < MSGLEN:
+        data = sent[0:2]
+        if data == b'':
+            print("disconnect")
+            return
+        else:
+            bytesLeft += sys.getsizeof(data)-STRUCT_SIZE
+            chunks.append(data)
+        sent = sent[2:]
+    print("message recieved fully")
+    print(f"message : {b''.join(chunks)}")
+        
 
 
 
-main()
+def test_basicGame(na,nb,nc):
+    heaps = [na,nb,nc]
+    while(True):
+        print(heaps)
+        index = int(input())
+        amount = int(input())
+        if(checkValid(heaps,index,amount)):
+            updateHeapsClient(heaps,index,amount)
+        if(checkForWin(heaps)):
+            print("Client won")
+            break
+        updateHeapsServer(heaps)
+        if(checkForWin(heaps)):
+            print("Server won")
+            break
+
+DEBUG = True
+func = main if not DEBUG else test
+func()
