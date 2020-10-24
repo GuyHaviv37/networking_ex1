@@ -16,6 +16,7 @@ def mySendall(conn, bytesData):
         print(error.strerror)
         return False
     return True
+
 # Recieves MSGLEN bytes of data from socket 'conn'
 # Returns bytes object - that can be unpacked into tuple
 def myRecvall(conn,MSGLEN):
@@ -43,11 +44,11 @@ def getConsoleInput():
         print("Invalid number of arguements for nim-server")
         print("Should be 3/4 : heapA heapB heapC [PORT]")
         sys.exit(0)
-    na = sys.argv[1]
-    nb = sys.argv[2]
-    nc = sys.argv[3]
+    na = int(sys.argv[1])
+    nb = int(sys.argv[2])
+    nc = int(sys.argv[3])
     if(inputLen == 5): # can add check to viable PORT number , i.e. > 1024
-        port = sys.argv[4]
+        port = int(sys.argv[4])
     else:
         port = 6444
     return na,nb,nc,port
@@ -113,12 +114,18 @@ def server(na,nb,nc,PORT):
         listenSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         listenSocket.bind(('',PORT))
         listenSocket.listen(1)
+        print(f'Server is listening on port {PORT}')
     except OSError as error:
-        #deal with error on establishment - that's system exit
-        print(error.strerror)
+        print(f'An error occured establishing a server{error.strerror}')
+        if(listenSocket.fileno() >= 0):
+            listenSocket.close()
 
     while True:
-        conn , addr = listenSocket.accept()
+        try:
+            conn , addr = listenSocket.accept()
+        except OSError as err:
+            print(f'Failed to accept an incoming connection... {err.strerror}')
+            break
         #Initialize game
         init = True
         gameOver = False
@@ -133,7 +140,8 @@ def server(na,nb,nc,PORT):
                 dataSent = struct.pack(">ciii",messageTag.encode(UTF),heaps[0],heaps[1],heaps[2])
 
             if not mySendall(conn,dataSent):
-                    break # Quit
+                print("Failed to send data to the client")
+                break # Quit current game
 
             # Receive message from client
             bytesRecv = myRecvall(conn,5)
@@ -141,7 +149,7 @@ def server(na,nb,nc,PORT):
             heapIndex, amount = parseRecvInput(inputRecv)
 
             # Make game move and set messageTag:
-            if(heapIndex >= 3): # Quit program
+            if(heapIndex >= 3): # Quit current game
                 break
             if(not checkValid(heaps,heapIndex,amount)):
                 messageTag = 'x'
@@ -158,7 +166,8 @@ def server(na,nb,nc,PORT):
                     if(checkForWin(heaps)):
                         messageTag = 's'
             #continue program with loop
-        conn.close()
+        if(conn.fileno() >= 0):
+            conn.close()
     listenSocket.close()
 
 #Main function for the program
@@ -169,11 +178,8 @@ def main():
 
 def test():
     #test_basicGame(5,5,5)
-    sent = struct.pack(">ci",b'A',999)
-    #print(sent[4:5])
-    recv = struct.unpack(">ci",sent)
-    print(recv)
-    #test_Recvall()
+    test_Recvall()
+
     
 
 def test_Recvall():
@@ -214,6 +220,6 @@ def test_basicGame(na,nb,nc):
             print("Server won")
             break
 
-DEBUG = True
+DEBUG = False
 func = main if not DEBUG else test
 func()
