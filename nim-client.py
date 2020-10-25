@@ -51,6 +51,8 @@ def createStep():
     elif len(splitStep) == 1:
         if splitStep[0] == "Q":
             return True, struct.pack(">ci", b'Q', 0)
+        else:
+            return False, struct.pack(">ci", b'Z', 0)
     else:
         return False, struct.pack(">ci", b'Z', 0)
 
