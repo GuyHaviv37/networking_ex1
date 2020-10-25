@@ -11,7 +11,7 @@ UTF = 'utf-8'
 
 def mySendall(clientSoc, byteStep):
     try:
-        while len(byteStep != 0):
+        while len(byteStep) != 0:
             ret = clientSoc.send(byteStep)
             byteStep = byteStep[ret:]
     except socket.error as error:
@@ -53,16 +53,17 @@ def createStep():
 # returns True if play is not over, otherwise returns False
 def parseCurrentPlayStatus(data):
     tav, nA, nB, nC = struct.unpack(">ciii", data)
-    if tav == "i":
+    print(f"tav {tav}")
+    if tav == b'i':
         print("nim\n")
-    elif tav == "g":
+    elif tav == b'g':
         print("Move accepted\n")
-    elif tav == "x":
+    elif tav == b'x':
         print("Illegal move\n")
-    elif tav == "s":
+    elif tav == b's':
         print("Server win!")
         return False
-    elif tav == "c":
+    elif tav == b'c':
         print("You win!")
         return False
     print("Heap A: " + str(nA) + "\n")
@@ -81,6 +82,7 @@ def startPlay(clientSoc):
             run = parseCurrentPlayStatus(allDataRecv)
             if run:
                 bytesNewMove = createStep()
+                print(f'bytes to send: {bytesNewMove}')
                 run = mySendall(clientSoc, bytesNewMove)
         elif run:
             print("invalid data received from server")

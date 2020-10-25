@@ -27,7 +27,7 @@ def myRecvall(conn,MSGLEN):
         data = conn.recv(1024) # to be changed later
         if data == b'':
             print("disconnect")
-            return b'X\x00\x00\x00\x00'
+            return b'Q\x00\x00\x00\x00'
         bytesLeft += sys.getsizeof(data)-STRUCT_SIZE
         chunks.append(data)
     print("message recieved fully")
@@ -120,6 +120,7 @@ def server(na,nb,nc,PORT):
         print(f'An error occured establishing a server{error.strerror}')
         if(listenSocket.fileno() >= 0):
             listenSocket.close()
+        sys.exit(0)
 
     while True:
         try:
