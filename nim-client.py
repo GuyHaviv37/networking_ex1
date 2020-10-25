@@ -40,33 +40,32 @@ def createStep():
     splitStep = step.split()
     if len(splitStep) == 2:
         if splitStep[0] == "Q" or len(splitStep[0]) != 1 or not splitStep[1].isdigit():
-            return True, struct.pack(">ci", b'Z', 0)
+            return False, struct.pack(">ci", b'Z', 0)
         else:
-            return True, struct.pack(">ci", splitStep[0].encode(UTF), int(splitStep[1]))
+            return False, struct.pack(">ci", splitStep[0].encode(UTF), int(splitStep[1]))
     elif len(splitStep) == 1:
         if splitStep[0] == "Q":
-            return False, struct.pack(">ci", b'Q', 0)
+            return True, struct.pack(">ci", b'Q', 0)
     else:
-        return True, struct.pack(">ci", b'Z', 0)
+        return False, struct.pack(">ci", b'Z', 0)
 
 
 # returns True if play is not over, otherwise returns False
 def parseCurrentPlayStatus(data):
-    run = True
     tav, nA, nB, nC = struct.unpack(">ciii", data)
     print(f"tav {tav}")
     if tav == b'i':
         print("nim")
-    elif tav == b'g' or tav == b't':
+    elif tav == b'g' or tav == b's' or tav == b'c':
         print("Move accepted")
-    elif tav == b'x':
+    elif tav == b'x' or tav == b't':
         print("Illegal move")
 
     print("Heap A: " + str(nA))
     print("Heap B: " + str(nB))
     print("Heap C: " + str(nC))
 
-    if tav == b's':
+    if tav == b's' or tav == b't':
         print("Server win!")
         return False
     elif tav == b'c':
@@ -85,7 +84,7 @@ def startPlay(clientSoc):
             run = parseCurrentPlayStatus(allDataRecv)
             if run:
                 quitCommand, bytesNewMove = createStep()
-                if not quitCommand:
+                if quitCommand:
                     print(f'bytes to send: {bytesNewMove}')
                     run = mySendall(clientSoc, bytesNewMove)
                 else:
@@ -115,7 +114,7 @@ def connectToGame(hostName, port):
 def main():
     n = len(sys.argv)
     hostName = ""
-    port = 6444
+    port = "6444"
     if n > 2:
         hostName = sys.argv[1]
         port = sys.argv[2]
