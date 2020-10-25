@@ -24,10 +24,15 @@ def myRecvall(clientSoc, expectedLenInBytes):
     gotSize = 0
     chunks = []
     while gotSize < expectedLenInBytes:
-        data = clientSoc.recv(1024)
-        # check the difference from data == b''
-        if data == 0:
-            print("Disconnected from server\n")
+        try:
+            data = clientSoc.recv(1024)
+        except OSError as error:
+            if error.errno == errno.ECONNREFUSED:
+                print("disconnect from sever server")
+            else:
+                print(error.strerror + ", cannot start playing")
+        if data == b'':
+            print("Disconnected from server")
             return False, b''
         gotSize += sys.getsizeof(data) - STRUCT_SIZE
         chunks.append(data)
