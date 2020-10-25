@@ -14,7 +14,7 @@ def mySendall(clientSoc, byteStep):
         while len(byteStep) != 0:
             ret = clientSoc.send(byteStep)
             byteStep = byteStep[ret:]
-    except socket.error as error:
+    except OSError as error:
         print(error.strerror)
         return False
     return True
@@ -84,7 +84,7 @@ def startPlay(clientSoc):
             run = parseCurrentPlayStatus(allDataRecv)
             if run:
                 quitCommand, bytesNewMove = createStep()
-                if quitCommand:
+                if not quitCommand:
                     print(f'bytes to send: {bytesNewMove}')
                     run = mySendall(clientSoc, bytesNewMove)
                 else:

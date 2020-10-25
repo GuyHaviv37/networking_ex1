@@ -24,7 +24,12 @@ def myRecvall(conn,MSGLEN):
     bytesLeft = 0
     chunks = []
     while bytesLeft < MSGLEN:
-        data = conn.recv(1024) # to be changed later
+        try:
+            data = conn.recv(1024) # to be changed later
+        except OSError as error:
+            if(error.errno == errno.ECONNREFUSED):
+                print("disconnect")
+                return b'Q\x00\x00\x00\x00'
         if data == b'':
             print("disconnect")
             return b'Q\x00\x00\x00\x00'
@@ -119,7 +124,8 @@ def server(na,nb,nc,PORT):
         listenSocket.listen(1)
         print(f'Server is listening on port {PORT}')
     except OSError as error:
-        print(f'An error occured establishing a server{error.strerror}')
+        print('An error occured establishing a server:')
+        print(error.strerror)
         if(listenSocket.fileno() >= 0):
             listenSocket.close()
         sys.exit(0)
