@@ -85,6 +85,8 @@ def checkValid(heaps,heapIndex,amount):
         return False
     if(heaps[heapIndex] >= amount):
         return True
+    if amount <= 0:
+        return True
     else:
         return False
     
@@ -156,15 +158,18 @@ def server(na,nb,nc,PORT):
                 messageTag = 'x'
                 updateHeapsServer(heaps)
                 if(checkForWin(heaps)):
-                    messageTag = 's'
+                    # server wins - last client move was invalid
+                    messageTag = 't'
             else:
                 messageTag = 'g'
                 updateHeapsClient(heaps,heapIndex,amount)
                 if(checkForWin(heaps)):
+                    # client wins - last client move was valid
                     messageTag = 'c'
                 else:
                     updateHeapsServer(heaps)
                     if(checkForWin(heaps)):
+                        # server wins - last client move was valid
                         messageTag = 's'
             #continue program with loop
         if(conn.fileno() >= 0):
