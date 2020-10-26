@@ -111,7 +111,6 @@ def startPlay(clientSoc):
             if run:
                 quitCommand, bytesNewMove = createStep()
                 if not quitCommand:
-                    print(f'bytes to send: {bytesNewMove}')
                     run = mySendall(clientSoc, bytesNewMove)
                 else:
                     run = False
@@ -137,6 +136,9 @@ def connectToGame(hostName, port):
             clientSoc.close()
 
 
+# expected 2 arguments- first for hostname, second for port number
+# if got 2 or more arguments, use the first two
+# one argument belongs to hostname
 def main():
     n = len(sys.argv)
     hostName = ""
