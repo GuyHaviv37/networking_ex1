@@ -9,6 +9,7 @@ STRUCT_SIZE = 33
 UTF = 'utf-8'
 
 
+# returns True if message sent successfully
 def mySendall(clientSoc, byteStep):
     try:
         while len(byteStep) != 0:
@@ -20,6 +21,8 @@ def mySendall(clientSoc, byteStep):
     return True
 
 
+# returns bytes object with the data received from server
+# return true if message received successfully ,otherwise returns False
 def myRecvall(clientSoc, expectedLenInBytes):
     gotSize = 0
     chunks = []
@@ -30,7 +33,8 @@ def myRecvall(clientSoc, expectedLenInBytes):
             if error.errno == errno.ECONNREFUSED:
                 print("disconnect from sever server")
             else:
-                print(error.strerror + ", cannot start playing")
+                print(error.strerror + ", exit game")
+            return False, b''
         if data == b'':
             print("Disconnected from server")
             return False, b''
@@ -40,6 +44,7 @@ def myRecvall(clientSoc, expectedLenInBytes):
 
 
 # returns bytes object with the data to send to the server- format ">ci"
+# return true if user asked for QUIT- Q ,otherwise returns False
 def createStep():
     step = input()
     splitStep = step.split()
@@ -57,29 +62,43 @@ def createStep():
         return False, struct.pack(">ci", b'Z', 0)
 
 
-# returns True if play is not over, otherwise returns False
+# returns true if the parameters are valid (3 int >=0 and tav is in {i,g,s,c,x,t}
+# otherwise returns false
+def checkValidParm(tav, nA, nB, nC):
+    if nA < 0 or nB < 0 or nC < 0:
+        return False
+    if tav == b'i' or tav == b'g' or tav == b's' or tav == b'c' or tav == b'x' or tav == b't':
+        return True
+    return False
+
+
+# returns True if game should be continue, otherwise returns False
 def parseCurrentPlayStatus(data):
     tav, nA, nB, nC = struct.unpack(">ciii", data)
-    print(f"tav {tav}")
-    if tav == b'i':
-        print("nim")
-    elif tav == b'g' or tav == b's' or tav == b'c':
-        print("Move accepted")
-    elif tav == b'x' or tav == b't':
-        print("Illegal move")
+    valid = checkValidParm(tav, nA, nB, nC)
+    if valid:
+        if tav == b'i':
+            print("nim")
+        elif tav == b'g' or tav == b's' or tav == b'c':
+            print("Move accepted")
+        elif tav == b'x' or tav == b't':
+            print("Illegal move")
 
-    print("Heap A: " + str(nA))
-    print("Heap B: " + str(nB))
-    print("Heap C: " + str(nC))
+        print("Heap A: " + str(nA))
+        print("Heap B: " + str(nB))
+        print("Heap C: " + str(nC))
 
-    if tav == b's' or tav == b't':
-        print("Server win!")
+        if tav == b's' or tav == b't':
+            print("Server win!")
+            return False
+        elif tav == b'c':
+            print("You win!")
+            return False
+        print("Your turn:")
+        return True
+    else:
+        print("server sent invalid message, exit game")
         return False
-    elif tav == b'c':
-        print("You win!")
-        return False
-    print("Your turn:")
-    return True
 
 
 # while game on and connection is valid, get the heap status, and send the new game move
