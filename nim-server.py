@@ -12,7 +12,7 @@ def mySendall(conn, bytesData):
         while (len(bytesData) != 0):
             ret = conn.send(bytesData)
             bytesData = bytesData[ret:]
-    except socket.error as error:
+    except OSError as error:
         print(error.strerror)
         return False
     return True
