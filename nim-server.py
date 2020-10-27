@@ -28,15 +28,13 @@ def myRecvall(conn,MSGLEN):
             data = conn.recv(1024) # to be changed later
         except OSError as error:
             if(error.errno == errno.ECONNREFUSED):
-                print("disconnect")
+                # disconnected from socket
                 return b'Q\x00\x00\x00\x00'
         if data == b'':
-            print("disconnect")
+            # disconnected from socket
             return b'Q\x00\x00\x00\x00'
         bytesLeft += sys.getsizeof(data)-STRUCT_SIZE
         chunks.append(data)
-    print("message recieved fully")
-    print(f"message : {b''.join(chunks)}")
     return b''.join(chunks)
 
 
@@ -53,7 +51,11 @@ def getConsoleInput():
     nb = int(sys.argv[2])
     nc = int(sys.argv[3])
     if(inputLen == 5): # can add check to viable PORT number , i.e. > 1024
-        port = int(sys.argv[4])
+        if sys.argv[4].isdigit():
+            port = int(sys.argv[4])
+        else:
+            print("Error: PORT number specified is invalid.")
+            sys.exit(0) 
     else:
         port = 6444
     return na,nb,nc,port
@@ -122,7 +124,6 @@ def server(na,nb,nc,PORT):
         listenSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         listenSocket.bind(('',PORT))
         listenSocket.listen(1)
-        print(f'Server is listening on port {PORT}')
     except OSError as error:
         print('An error occured establishing a server:')
         print(error.strerror)
@@ -134,7 +135,8 @@ def server(na,nb,nc,PORT):
         try:
             conn , addr = listenSocket.accept()
         except OSError as err:
-            print(f'Failed to accept an incoming connection... {err.strerror}')
+            print('Failed to accept an incoming connection... ')
+            print(err.strerror)
             break
         #Initialize game
         init = True
@@ -150,7 +152,7 @@ def server(na,nb,nc,PORT):
                 dataSent = struct.pack(">ciii",messageTag.encode(UTF),heaps[0],heaps[1],heaps[2])
 
             if not mySendall(conn,dataSent):
-                print("Failed to send data to the client")
+                print("Failed to send data to the client, Quitting Game..")
                 break # Quit current game
 
             # Receive message from client
@@ -159,6 +161,7 @@ def server(na,nb,nc,PORT):
 
             # Make game move and set messageTag:
             if(heapIndex >= 3): # Quit current game
+                print("Quitting game...")
                 break
             if(not checkValid(heaps,heapIndex,amount)):
                 messageTag = 'x'
