@@ -37,6 +37,16 @@ def myRecvall(conn,MSGLEN):
         chunks.append(data)
     return b''.join(chunks)
 
+# Clean socket closing of server connection w/ remote
+# If any - receive all remote messages yet to be read by host, then close socket
+def shutdownSocket(socket):
+    socket.shutdown(socket.SHUT_WR)
+    while True:
+        data = myRecvall(socket,5) # maybe put a larger number ?
+        # breaking conditional can differ between server and client
+        if struct.unpack(">ci",data)[0] == b'Q':
+            break
+    socket.close()
 
 # Gets command line input
 # returns - N_a,N_b,N_c[,PORT]
@@ -180,7 +190,8 @@ def server(na,nb,nc,PORT):
                         messageTag = 's'
             #continue program with loop
         if(conn.fileno() >= 0):
-            conn.close()
+            shutdownSocket(conn)
+            #conn.close()
     listenSocket.close()
 
 #Main function for the program
@@ -236,6 +247,6 @@ def test_basicGame(na,nb,nc):
             print("Server won")
             break
 
-DEBUG = False
+DEBUG = True
 func = main if not DEBUG else test
 func()
