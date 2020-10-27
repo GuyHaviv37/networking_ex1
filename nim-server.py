@@ -39,12 +39,25 @@ def myRecvall(conn,MSGLEN):
 
 # Clean socket closing of server connection w/ remote
 # If any - receive all remote messages yet to be read by host, then close socket
-def shutdownSocket(socket):
+# Here , data received can still have meaning
+def shutdownSocketServer(socket):
     socket.shutdown(socket.SHUT_WR)
     while True:
         data = myRecvall(socket,5) # maybe put a larger number ?
         # breaking conditional can differ between server and client
         if struct.unpack(">ci",data)[0] == b'Q':
+            break
+    socket.close()
+
+# Generalized version of shutdownSocketServer
+def shutdownSocket(socket):
+    socket.shutdown(socket.SHUT_WR)
+    while True:
+        try:
+            data = socket.recv(1024)
+            if not data:
+                break
+        except OSError as error:
             break
     socket.close()
 
@@ -190,7 +203,7 @@ def server(na,nb,nc,PORT):
                         messageTag = 's'
             #continue program with loop
         if(conn.fileno() >= 0):
-            shutdownSocket(conn)
+            shutdownSocketServer(conn)
             #conn.close()
     listenSocket.close()
 
