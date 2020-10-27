@@ -152,7 +152,6 @@ def server(na,nb,nc,PORT):
                 dataSent = struct.pack(">ciii",messageTag.encode(UTF),heaps[0],heaps[1],heaps[2])
 
             if not mySendall(conn,dataSent):
-                print("Failed to send data to the client, Quitting Game..")
                 break # Quit current game
 
             # Receive message from client
@@ -161,7 +160,6 @@ def server(na,nb,nc,PORT):
 
             # Make game move and set messageTag:
             if(heapIndex >= 3): # Quit current game
-                print("Quitting game...")
                 break
             if(not checkValid(heaps,heapIndex,amount)):
                 messageTag = 'x'
