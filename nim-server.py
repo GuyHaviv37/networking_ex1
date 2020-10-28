@@ -38,16 +38,16 @@ def myRecvall(conn,MSGLEN):
     return b''.join(chunks)
 
 # Preforms shutdown to the socket - i.e. checks for 'leftover' data on recv buffer
-def shutdownSocket(socket):
-    socket.shutdown(socket.SHUT_WR)
+def shutdownSocket(conn):
+    conn.shutdown(socket.SHUT_WR)
     while True:
         try:
-            data = socket.recv(1024)
+            data = conn.recv(1024)
             if not data:
                 break
         except OSError as error:
             break
-    socket.close()
+    conn.close()
 
 # Gets command line input
 # returns - N_a,N_b,N_c[,PORT]
@@ -248,6 +248,6 @@ def test_basicGame(na,nb,nc):
             print("Server won")
             break
 
-DEBUG = True
+DEBUG = False
 func = main if not DEBUG else test
 func()
