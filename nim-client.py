@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 import errno
+import socket
 import struct
 import sys
-import socket
-from socket import AF_INET, socket, SOCK_STREAM
 
 STRUCT_SIZE = 33
 UTF = 'utf-8'
@@ -53,7 +52,6 @@ def shutdownSocket(clientSoc):
                 break
         except OSError as error:
             break
-    clientSoc.close()
 
 
 # returns bytes object with the data to send to the server- format ">ci"
@@ -136,7 +134,7 @@ def startPlay(clientSoc):
 def connectToGame(hostName, port):
     clientSoc = None
     try:
-        clientSoc = socket(AF_INET, SOCK_STREAM)
+        clientSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clientSoc.connect((hostName, port))
         startPlay(clientSoc)
         shutdownSocket(clientSoc)
