@@ -43,6 +43,19 @@ def myRecvall(clientSoc, expectedLenInBytes):
     return True, b''.join(chunks)
 
 
+# Generalized version of shutdownSocketServer
+def shutdownSocket(clientSoc):
+    clientSoc.shutdown(socket.SHUT_WR)
+    while True:
+        try:
+            data = clientSoc.recv(1024)
+            if not data:
+                break
+        except OSError as error:
+            break
+    clientSoc.close()
+
+
 # returns bytes object with the data to send to the server- format ">ci"
 # return true if user asked for QUIT- Q ,otherwise returns False
 def createStep():
@@ -126,6 +139,7 @@ def connectToGame(hostName, port):
         clientSoc = socket(AF_INET, SOCK_STREAM)
         clientSoc.connect((hostName, port))
         startPlay(clientSoc)
+        shutdownSocket(clientSoc)
     except OSError as error:
         if error.errno == errno.ECONNREFUSED:
             print("connection refused by server")
