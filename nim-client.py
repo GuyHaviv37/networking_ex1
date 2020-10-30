@@ -15,7 +15,7 @@ def mySendall(clientSoc, byteStep):
             ret = clientSoc.send(byteStep)
             byteStep = byteStep[ret:]
     except OSError as error:
-        print(error.strerror)
+        print("Disconnected from server")
         return False
     return True
 
@@ -30,7 +30,7 @@ def myRecvall(clientSoc, expectedLenInBytes):
             data = clientSoc.recv(1024)
         except OSError as error:
             if error.errno == errno.ECONNREFUSED:
-                print("disconnect from sever server")
+                print("Disconnected from server")
             else:
                 print(error.strerror + ", exit game")
             return False, b''
@@ -42,7 +42,7 @@ def myRecvall(clientSoc, expectedLenInBytes):
     return True, b''.join(chunks)
 
 
-# Generalized version of shutdownSocketServer
+# Generalized version of shutdownSocketClient
 def shutdownSocket(clientSoc):
     clientSoc.shutdown(socket.SHUT_WR)
     while True:
@@ -121,12 +121,13 @@ def startPlay(clientSoc):
             run = parseCurrentPlayStatus(allDataRecv)
             if run:
                 quitCommand, bytesNewMove = createStep()
+
                 if not quitCommand:
                     run = mySendall(clientSoc, bytesNewMove)
                 else:
                     run = False
         elif run:
-            print("invalid data received from server")
+            print("server sent invalid message, exit game")
             run = False
 
 
@@ -140,9 +141,9 @@ def connectToGame(hostName, port):
         shutdownSocket(clientSoc)
     except OSError as error:
         if error.errno == errno.ECONNREFUSED:
-            print("connection refused by server")
-        else:
-            print(error.strerror + ", cannot start playing")
+            print("Disconnected from server")
+        elif error.errno != 107:
+            print(str(error.errno) + error.strerror + ", cannot start playing")
     finally:
         if clientSoc is not None:
             clientSoc.close()
