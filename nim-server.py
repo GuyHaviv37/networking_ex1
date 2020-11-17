@@ -101,12 +101,12 @@ def parseRecvInput(bytesRecv):
 def checkValid(heaps,heapIndex,amount):
     if(heapIndex < 0 or heapIndex > 2):
         return False
-    if(heaps[heapIndex] >= amount):
-        return True
     if amount <= 0:
-        return True
-    else:
         return False
+    if(heaps[heapIndex] < amount):
+        return False
+    else:
+        return True
     
 # Makes server game move
 # Looks for biggest heap and removes 1 from it
@@ -157,6 +157,7 @@ def server(na,nb,nc,PORT):
         dataSent = struct.pack(">ciii",messageTag.encode(UTF),heaps[0],heaps[1],heaps[2])
         while(not gameOver): #can be changed to while True
             # Send message to client
+            print(messageTag)
             if init == True: # send with 'i' tag
                 init = False
             else: # send with messageTag
@@ -168,10 +169,10 @@ def server(na,nb,nc,PORT):
             # Receive message from client
             bytesRecv = myRecvall(conn,5)
             heapIndex, amount = parseRecvInput(bytesRecv)
-
             # Make game move and set messageTag:
             if(heapIndex >= 3): # Quit current game
                 break
+            print(checkValid(heaps,heapIndex,amount))
             if(not checkValid(heaps,heapIndex,amount)):
                 messageTag = 'x'
                 updateHeapsServer(heaps)
